@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101820">
+<title>IRAN TRADE HMD</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#101820;color:#f2f5f3;font-family:Tahoma,Arial,sans-serif}
+.wrap{max-width:1100px;margin:auto;padding:18px}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:15px 0 22px;border-bottom:1px solid #34443b}
+h1{font-size:21px;color:#e5bd70;margin:0}
+.sub{font-size:11px;color:#aab6ad;margin-top:7px}
+.status{font-size:11px;color:#a9e5c2;background:#19372b;padding:9px 12px;border-radius:20px}
+.grid{display:grid;gap:13px;margin-top:15px}
+.prices{grid-template-columns:repeat(3,minmax(0,1fr))}
+.main{grid-template-columns:1.4fr 1fr}
+.bottom{grid-template-columns:1fr 1fr}
+.card{background:#1b2923;border:1px solid #34443b;border-radius:15px;padding:17px;min-width:0}
+.label{font-size:12px;color:#aab6ad}
+.value{font-size:clamp(19px,3vw,27px);font-weight:bold;margin-top:13px;direction:ltr;text-align:right;overflow-wrap:anywhere}
+.unit{font-size:11px;color:#aab6ad;margin-top:7px}
+h2{font-size:15px;margin:0 0 15px}
+.tag{font-size:10px;color:#e5bd70}
+.chart{height:190px;background:#142019;border-radius:12px;padding:10px}
+canvas{width:100%;height:100%}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:13px}
+input{width:100%;padding:12px;border-radius:9px;border:1px solid #43544a;background:#142019;color:white;font:inherit}
+label{font-size:11px;color:#aab6ad;display:block;margin-bottom:7px}
+button{padding:12px;border:0;border-radius:9px;font:inherit;font-weight:bold;cursor:pointer}
+.buy{background:#208b60;color:white}
+.sell{background:#b94d49;color:white}
+.soft{background:#34443b;color:white}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+.full{width:100%;margin-top:10px}
+.note{font-size:11px;color:#aab6ad;line-height:2;margin-top:13px}
+.message{font-size:11px;color:#e5bd70;margin-top:10px;line-height:1.8}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th,td{text-align:right;padding:10px 6px;border-bottom:1px solid #34443b}
+th{color:#aab6ad}
+.tablewrap{overflow-x:auto}
+.good{color:#65d6a0}
+.bad{color:#ff8880}
+footer{text-align:center;color:#89978e;font-size:10px;padding:22px}
+@media(max-width:700px){
+ .prices{grid-template-columns:1fr 1fr}
+ .main,.bottom{grid-template-columns:1fr}
+}
+@media(max-width:390px){.row{grid-template-columns:1fr}header{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+ <div>
+  <h1>IRAN TRADE HMD</h1>
+  <div class="sub">داشبورد بازار و معاملات آزمایشی</div>
+ </div>
+ <div class="status" id="connection">در حال اتصال به بازار...</div>
+</header>
+
+<section class="grid prices">
+ <div class="card">
+  <div class="label">طلای ۱۸ عیار · هر گرم</div>
+  <div class="value" id="gold">در انتظار داده</div>
+  <div class="unit">تومان</div>
+  <div class="note" id="goldTime">آخرین دریافت: —</div>
+ </div>
+ <div class="card">
+  <div class="label">دلار آزاد</div>
+  <div class="value" id="usd">در انتظار داده</div>
+  <div class="unit">تومان</div>
+  <div class="note" id="usdTime">آخرین دریافت: —</div>
+ </div>
+ <div class="card">
+  <div class="label">موجودی نقدی آزمایشی</div>
+  <div class="value" id="cash">۵٬۰۰۰٬۰۰۰٬۰۰۰</div>
+  <div class="unit">تومان</div>
+  <div class="note">سرمایه اولیه شبیه‌سازی</div>
+ </div>
+</section>
+
+<section class="grid main">
+ <div class="card">
+  <h2>نمودار تغییرات قیمت طلا</h2>
+  <div class="chart"><canvas id="chart"></canvas></div>
+  <div class="note" id="chartInfo">
+   نمودار با دریافت قیمت‌های واقعی در زمان باز بودن سایت ساخته می‌شود.
+  </div>
+ </div>
+
+ <div class="card">
+  <h2>وضعیت بازار</h2>
+  <div class="label">وضعیت دریافت داده</div>
+  <div class="value" id="marketState" style="font-size:18px">در انتظار قیمت</div>
+  <div class="note" id="marketInfo">
+   این بخش فقط وضعیت داده‌های بازار را نشان می‌دهد؛ توصیه خرید یا فروش نیست.
+  </div>
+  <button class="soft full" id="refresh">به‌روزرسانی قیمت‌ها</button>
+  <div class="message" id="marketMessage"></div>
+ </div>
+</section>
+
+<section class="grid bottom">
+ <div class="card">
+  <h2>معاملات مجازی</h2>
+  <div class="row">
+   <div>
+    <label for="quantity">مقدار طلا (گرم)</label>
+    <input id="quantity" type="number" min="0.001" step="0.001" value="1">
+   </div>
+   <div>
+    <label for="manualPrice">قیمت آزمایشی (تومان)</label>
+    <input id="manualPrice" type="number" min="1" placeholder="قیمت آنلاین استفاده می‌شود">
+   </div>
+  </div>
+  <div class="actions">
+   <button class="buy" id="buy">خرید مجازی</button>
+   <button class="sell" id="sell">فروش مجازی</button>
+  </div>
+  <button class="soft full" id="reset">بازنشانی حساب آزمایشی</button>
+  <div class="message" id="tradeMessage"></div>
+  <div class="note">
+   کارمزد شبیه‌سازی هر معامله: ۰٫۱٪
+   <br>این معاملات فقط مجازی هستند و پول واقعی جابه‌جا نمی‌شود.
+  </div>
+ </div>
+
+ <div class="card">
+  <h2>وضعیت حساب</h2>
+  <div class="label">مقدار طلای نگهداری‌شده</div>
+  <div class="value" id="grams">۰ گرم</div>
+  <div class="note">ارزش کل حساب: <b id="equity">۵٬۰۰۰٬۰۰۰٬۰۰۰</b> تومان</div>
+  <div class="note">سود و زیان: <b id="pnl">۰</b> تومان</div>
+  <div class="note">میانگین قیمت خرید: <b id="average">—</b></div>
+ </div>
+</section>
+
+<section class="card" style="margin-top:15px">
+ <h2>تاریخچه معاملات</h2>
+ <div class="tablewrap">
+  <table>
+   <thead>
+    <tr><th>نوع</th><th>مقدار</th><th>قیمت</th><th>زمان</th></tr>
+   </thead>
+   <tbody id="history">
+    <tr><td colspan="4">هنوز معامله‌ای ثبت نشده است.</td></tr>
+   </tbody>
+  </table>
+ </div>
+</section>
+
+<footer>
+ IRAN TRADE HMD · قیمت‌ها جهت اطلاع‌رسانی · معاملات صرفاً آزمایشی
+</footer>
+</div>
+
+<script>
+(() => {
+ "use strict";
+
+ const API =
+ "https://raw.githubusercontent.com/iran-market/iran-market.github.io/main/data/popular.json";
+
+ const START = 5000000000;
+ const FEE = 0.001;
+ const $ = id => document.getElementById(id);
+
+ const fmt = n =>
+  Math.round(n).toLocaleString("fa-IR");
+
+ const fmtGram = n =>
+  n.toLocaleString("fa-IR",{maximumFractionDigits:3});
+
+ let goldPrice = 0;
+ let usdPrice = 0;
+ let lastUpdate = null;
+ let historyPrices = [];
+
+ let account = {
+  cash: START,
+  grams: 0,
+  average: 0,
+  realized: 0,
+  trades: []
+ };
+
+ function findPrice(data, symbol) {
+  if (!Array.isArray(data)) return null;
+
+  const item = data.find(x => x.symbol === symbol);
+  if (!item) return null;
+
+  const price = Number(item.price);
+  return Number.isFinite(price) && price > 0 ? price : null;
+ }
+
+ function showTime() {
+  return new Date().toLocaleTimeString("fa-IR",{
+   hour:"2-digit",minute:"2-digit",second:"2-digit"
+  });
+ }
+
+ async function loadPrices() {
+  $("connection").textContent = "در حال دریافت قیمت...";
+  $("marketMessage").textContent = "";
+
+  try {
+   const response = await fetch(API + "?t=" + Date.now(), {
+    cache:"no-store"
+   });
+
+   if (!response.ok) throw new Error("HTTP " + response.status);
+
+   const payload = await response.json();
+   const data = payload.data;
+
+   const newGold = findPrice(data,"GOLD_18K_IRR");
+   const newUsd = findPrice(data,"USD_IRR_FREE");
+
+   if (!newGold || !newUsd) {
+    throw new Error("شناسه قیمت در پاسخ پیدا نشد");
+   }
+
+   goldPrice = newGold;
+   usdPrice = newUsd;
+   lastUpdate = new Date();
+
+   $("gold").textContent = fmt(goldPrice);
+   $("usd").textContent = fmt(usdPrice);
+   $("goldTime").textContent = "دریافت در ساعت " + showTime();
+   $("usdTime").textContent = "دریافت در ساعت " + showTime();
+
+   $("connection").textContent = "● اتصال برقرار است";
+   $("marketState").textContent = "قیمت‌ها دریافت شدند";
+   $("marketMessage").textContent =
+    "قیمت‌ها از منبع داده آنلاین دریافت شده‌اند.";
+
+   historyPrices.push({
+    time: lastUpdate.getTime(),
+    price: goldPrice
+   });
+
+   if (historyPrices.length > 60) historyPrices.shift();
+
+   drawChart();
+   renderAccount();
+
+  } catch(error) {
+   $("connection").textContent = "اتصال ناموفق";
+   $("marketState").textContent = "داده دریافت نشد";
+   $("marketMessage").textContent =
+    "دریافت قیمت ناموفق بود. اتصال اینترنت یا در دسترس بودن منبع را بررسی کن.";
+  }
+ }
+
+ function drawChart() {
+  const canvas = $("chart");
+  const rect = canvas.getBoundingClientRect();
+  const ratio = window.devicePixelRatio || 1;
+
+  canvas.width = rect.width * ratio;
+  canvas.height = rect.height * ratio;
+
+  const ctx = canvas.getContext("2d");
+  ctx.scale(ratio,ratio);
+
+  const w = rect.width;
+  const h = rect.height;
+
+  ctx.clearRect(0,0,w,h);
+
+  ctx.strokeStyle = "#34443b";
+  ctx.lineWidth = 1;
+
+  for(let i=1;i<4;i++){
+   const y = h*i/4;
+   ctx.beginPath();
+   ctx.moveTo(0,y);
+   ctx.lineTo(w,y);
+   ctx.stroke();
+  }
+
+  if(historyPrices.length < 2){
+   ctx.fillStyle = "#aab6ad";
+   ctx.font = "12px Tahoma";
+   ctx.textAlign = "center";
+   ctx.fillText("برای رسم نمودار، داده‌های بیشتری لازم است",w/2,h/2);
+   $("chartInfo").textContent =
+    "نمودار از قیمت‌های واقعی دریافت‌شده در همین مرورگر ساخته می‌شود.";
+   return;
+  }
+
+  const values = historyPrices.map(x=>x.price);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max-min || 1;
+
+  ctx.beginPath();
+
+  values.forEach((value,index)=>{
+   const x = index/(values.length-1)*w;
+   const y = h-((value-min)/range)*(h-20)-10;
+
+   if(index===0) ctx.moveTo(x,y);
+   else ctx.lineTo(x,y);
+  });
+
+  ctx.strokeStyle = "#e5bd70";
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  $("chartInfo").textContent =
+   "تعداد نقاط واقعی دریافت‌شده: " +
+   historyPrices.length.toLocaleString("fa-IR");
+ }
+
+ function renderAccount() {
+  const marketValue = goldPrice * account.grams;
+  const equity = account.cash + marketValue;
+  const pnl = equity - START;
+
+  $("cash").textContent = fmt(account.cash);
+  $("grams").textContent = fmtGram(account.grams) + " گرم";
+  $("equity").textContent = fmt(equity);
+  $("pnl").textContent = fmt(pnl);
+  $("average").textContent =
+   account.average ? fmt(account.average) + " تومان" : "—";
+
+  $("history").innerHTML = account.trades.length
+   ? account.trades.slice().reverse().slice(0,15).map(t=>
+    `<tr>
+     <td>${t.type}</td>
+     <td>${fmtGram(t.grams)} گرم</td>
+     <td>${fmt(t.price)} تومان</td>
+     <td>${t.time}</td>
+    </tr>`
+   ).join("")
+   : '<tr><td colspan="4">هنوز معامله‌ای ثبت نشده است.</td></tr>';
+ }
+
+ function trade(type) {
+  const quantity = Number($("quantity").value);
+  const manual = Number($("manualPrice").value);
+  const price = goldPrice || manual;
+
+  if(!price || price<=0){
+   $("tradeMessage").textContent = "قیمت معتبر در دسترس نیست.";
+   return;
+  }
+
+  if(!Number.isFinite(quantity) || quantity<=0){
+   $("tradeMessage").textContent = "مقدار گرم معتبر وارد کن.";
+   return;
+  }
+
+  const total = price*quantity;
+  const fee = total*FEE;
+
+  if(type==="خرید"){
+   if(total+fee>account.cash){
+    $("tradeMessage").textContent = "موجودی آزمایشی کافی نیست.";
+    return;
+   }
+
+   const newGrams = account.grams+quantity;
+
+   account.average =
+    (account.average*account.grams+total)/newGrams;
+
+   account.grams = newGrams;
+   account.cash -= total+fee;
+
+  } else {
+   if(quantity>account.grams+1e-9){
+    $("tradeMessage").textContent = "مقدار طلای مجازی کافی نیست.";
+    return;
+   }
+
+   account.cash += total-fee;
+   account.grams -= quantity;
+
+   if(account.grams<1e-8){
+    account.grams=0;
+    account.average=0;
+   }
+  }
+
+  account.trades.push({
+   type,
+   grams:quantity,
+   price,
+   time:showTime()
+  });
+
+  $("tradeMessage").textContent =
+   type+" مجازی ثبت شد. کارمزد: "+fmt(fee)+" تومان.";
+
+  renderAccount();
+ }
+
+ $("buy").addEventListener("click",()=>trade("خرید"));
+ $("sell").addEventListener("click",()=>trade("فروش"));
+
+ $("refresh").addEventListener("click",loadPrices);
+
+ $("reset").addEventListener("click",()=>{
+  if(!confirm("حساب آزمایشی بازنشانی شود؟")) return;
+
+  account={
+   cash:START,
+   grams:0,
+   average:0,
+   realized:0,
+   trades:[]
+  };
+
+  $("tradeMessage").textContent="حساب آزمایشی بازنشانی شد.";
+  renderAccount();
+ });
+
+ window.addEventListener("resize",drawChart);
+
+ renderAccount();
+ loadPrices();
+
+ // منبع داده حدود هر ۳۰ دقیقه به‌روزرسانی می‌شود.
+ // بررسی مجدد هر ۵ دقیقه انجام می‌شود.
+ setInterval(loadPrices,5*60*1000);
+
+})();
+</script>
+</body>
+   </html>
